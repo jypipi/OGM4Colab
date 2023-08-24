@@ -6,7 +6,7 @@ import numpy as np
 import pybullet as p
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
-from repository.utilities import utils, geometry_utils
+from test.utilities import utils, geometry_utils
 import time
 
 class Sim():
