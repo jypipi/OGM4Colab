@@ -28,21 +28,10 @@ class PathSimulator():
 
         self.car = car
 
-
         self.move = 0 # 1: forward, -1: backward, 0: stop
-        # self.turn = 0 # -1: left,    1: right,    0: no turn
         self.ifTurn = False
 
         # (x, y, heading, turn)
-        # self.waypoints = {
-        #     1: (1.95, 0.0, 0.0, 0),    2: (1.95, -1.95, 3*pi/2, 1), 3: (-1.95, -1.95, pi, 1),
-        #     4: (-1.95, 1.95, pi/2, 1), 5: (1.95, 1.95, 0.0, 1),    6: (1.95, 0.0, 3*pi/2, 1),
-        #     7: (-1.95, 0.0, pi, 1),   8: (-1.95, -1.95, 3*pi/2, -1), 9: (1.95, -1.95, 0.0, -1),
-        #     10: (1.95, 1.95, pi/2, -1), 11: (-1.95, 1.95, pi, -1),     12: (-1.95, 0.0, 3*pi/2, -1),
-        #     13: (0.0, 0.0, 0.0, -1),  14: (0.0, -1.95, 3*pi/2, 1), 15: (1.95, -1.95, 0.0, -1),
-        #     16: (1.95, 1.95, pi/2, -1), 17: (0.0, 1.95, pi, -1),      18: (0.0, 0.0, 3*pi/2, -1)
-        # }
-
         self.waypoints = {
             1: (1.95, 0.0, 0.0, 0, 1), 2: (-1.95, 0.0, 0.0, 0, -1),
             3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
@@ -123,43 +112,3 @@ class PathSimulator():
             self.velocity, self.steering = 8.0, 0.0
         else:
             self.velocity, self.steering = 5.0, 0.0
-
-
-
-
-
-
-    # def navigate(self, x, y, yaw):
-    #     """
-    #     x, y, yaw are added as parameters for API consistency
-    #     eventhough this controller does no need these values.
-    #     """
-    #     return 10.0, -1.0
-    #     return 0.0, 0.0
-    #     dist = np.linalg.norm(np.array(self.next)-np.array((x,y)))
-    #     if dist <= 0.5:
-    #         return self.stop()
-    #         self.vel_cmd.discard('forward')
-    #         self.vel_cmd.add('backward')
-
-    #     # Calculate steering
-    #     if 'right' in self.vel_cmd:
-    #         self.steering += self.steering_angle_per_sec / self.sim_fps
-    #         self.steering = min(self.steering, 1.0)
-    #     elif 'left' in self.vel_cmd:
-    #         self.steering -= self.steering_angle_per_sec / self.sim_fps
-    #         self.steering = max(self.steering, -1.0)
-    #     else:
-    #         self.steering = 0
-
-    #     # Calculate velocity
-    #     if 'forward' in self.vel_cmd:
-    #         self.velocity += self.acceleration / self.sim_fps
-    #         self.velocity = min(self.velocity, self.max_velocity)
-    #     elif 'backward' in self.vel_cmd:
-    #         self.velocity -= self.acceleration / self.sim_fps
-    #         self.velocity = max(self.velocity, -self.max_velocity)
-    #     else:
-    #         self.velocity = 0
-
-    #     return self.velocity, self.steering

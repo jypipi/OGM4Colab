@@ -120,7 +120,7 @@ class Sim():
             self.__place_obstacles(custom=self.custom)
         
         # Place the goal.
-        self.__place_goal(loc=goal_loc)
+        # self.__place_goal(loc=goal_loc)
 
     def step(self) -> None:
         """
@@ -323,7 +323,8 @@ class Sim():
                 body = utils.create_box(self.obs_w, self.obs_w, self.obs_h, color=self.obs_color)
                 obstacles.append(body)
 
-            locs = self.__select_random_locs(self.n_obs, self.obs_w)
+            locs = [(2.5/2., 2.5/2.), (-2.5/2., 2.5/2.),
+                    (-2.5/2., -2.5/2.), (2.5/2., -2.5/2.)]
             self.obstacle_coordinates = locs
             for obst, coords in zip(obstacles, locs):
                 x = coords[0]

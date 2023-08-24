@@ -11,7 +11,7 @@ import platform
 import numpy as np
 import pybullet as p
 from collections import namedtuple
-import utilities.geometry_utils as gu
+import OGM_for_Colab.utilities.geometry_utils as gu
 
 # For reading user configs (.yaml files)
 import yaml

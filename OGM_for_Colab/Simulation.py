@@ -10,7 +10,6 @@
 
 import sys
 sys.path.insert(0, '/content/test')
-!cd /
 from google.colab import output
 
 from OGM_for_Colab.pyrc3d.agent import Car
@@ -25,7 +24,6 @@ import numpy as np
 from math import *
 from yaml import safe_load
 
-%matplotlib inline
 
 ######### This section to load and store the simulation configuration #########
 
@@ -107,7 +105,6 @@ class Simulation():
         # Set simulation response time
         path_sim_time = Timings(PATH_SIM_FPS)
         lidar_time = Timings(LIDAR_FPS)
-        # debugging_time = Timings(DEBUGGING_FPS)
         print_frequency = Timings(PRINT_FPS)
         collect_data_time = Timings(COLLECT_DATA_FPS)
 
@@ -124,7 +121,7 @@ class Simulation():
         )
 
         # Initialize path simulator
-        # path_sim = PathSimulator(car, PATH_SIM_FPS)
+        path_sim = PathSimulator(car, PATH_SIM_FPS)
 
         t = 0
         dataset = {}
