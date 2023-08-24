@@ -199,10 +199,6 @@ class PathSimulator():
         self.adjustment = 0.0
 
     def navigate(self, x, y, yaw):
-        if self.next == 4:
-            print('Reached end point.')
-            return float('inf'), float('inf')
-
         next_x, next_y, heading, turn, move = self.waypoints[self.next]
         self.dist2next = np.linalg.norm(
             np.array((next_x, next_y))-np.array((x, y)))
@@ -235,6 +231,11 @@ class PathSimulator():
             return self.velocity, self.steering
         else:
             self.next += 1
+            
+            if self.next == 3:
+                print('Reached end point.')
+                return float('inf'), float('inf')
+            
             print('Move to next point.')
             self.time_counter = 0
             self.ifTurn = False
