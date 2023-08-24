@@ -1,7 +1,5 @@
 from math import *
 import numpy as np
-# import PID_controller as pid
-# from pyrc3d.agent import Car
 
 class PathSimulator():
     """
@@ -30,7 +28,6 @@ class PathSimulator():
 
         self.car = car
 
-        # self.pid = pid.PID(Kp=2, Ki=2, Kd=0.001)
 
         self.move = 0 # 1: forward, -1: backward, 0: stop
         # self.turn = 0 # -1: left,    1: right,    0: no turn
@@ -116,35 +113,6 @@ class PathSimulator():
             if error > 0:
                 adjustment *= -1
         return adjustment
-
-    # def turning(self, heading, yaw, error):
-    #     # self.time_counter = 0
-    #     # if self.time_counter % 120 == 0:
-    #     #     self.adjustment = self.pid.adjust(heading, yaw, self.delta_time*120) # rad
-    #     #     # self.adjustment = self.findAdj(error)
-    #     #     # print(heading, yaw, self.adjustment)
-    #     # self.time_counter += 1
-    #     # adjustment = self.adjustment
-
-    #     # if abs(error) <= (2*pi - abs(error)):
-    #     #     # adjust error
-    #     #     adjustment = error
-    #     # else:
-    #     #     # adjust 2*pi - abs(error)
-    #     #     adjustment = (2*pi - abs(error))
-    #     #     if error > 0:
-    #     #         adjustment *= -1
-
-    #     self.velocity = 10.0
-    #     adjustment = self.pid.adjust(heading, yaw, self.delta_time)
-
-    #     if adjustment >= 0.0:
-    #         self.steering = max(adjustment/self.delta_time, -1.0)
-    #     elif adjustment < 0.0:
-    #         self.steering = min(adjustment/self.delta_time, 1.0)
-    #     else:
-    #         self.velocity, self.steering = 0.0, 0.0
-    #         print("Error: check adjustment -> ", str(adjustment))
 
     def moving(self):
         if self.dist2next > 0.6:
