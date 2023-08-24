@@ -1,6 +1,6 @@
 import numpy as np
 import pybullet as p
-from OGM_for_Colab.utilities import utils
+from utilities import utils
 
 # TODO:
 # - create car constraints from yaml since it's to jargon.
