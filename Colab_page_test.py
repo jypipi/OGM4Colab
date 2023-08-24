@@ -67,7 +67,7 @@ class Simulation():
             None
         """
 
-        self.sim = Sim(time_step_freq=120)
+        self.sim = Sim(time_step_freq=120, debug=True)
 
         # Get the angle b/w the 1st and last laser beam
         rayAngleRange = (RAY_END_ANG - RAY_START_ANG) * (pi/180)
@@ -189,7 +189,7 @@ class PathSimulator():
         # (x, y, heading, turn)
         self.waypoints = {
             1: (1.95, 0.0, 0.0, 0, 1), 2: (-1.95, 0.0, 0.0, 0, -1),
-            3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
+            # 3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
             # 5: (-1.95, -1.95, 3*pi/2, 1, 1),  6: (-1.95, 1.95, pi/2, 1)
         }
 
