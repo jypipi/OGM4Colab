@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import time
 
 try:
-    # I'll install open3d later lol - Muhammad
+#     # I'll install open3d later lol - Muhammad
     import open3d as o3d
 except:
     pass
@@ -176,7 +176,7 @@ class Camera(Sensor):
         Raises:
             None.
         """
-        
+
         self.reconstructor = Reconstruction([self.WIDTH,self.HEIGHT],[self.FX,self.FY],[self.WIDTH/2,self.HEIGHT/2],[[1,0,0],[0,1,0],[0,0,1]],[0,0,0])
         
         image = self.get_camera_image_rgb()
@@ -228,7 +228,7 @@ class Camera(Sensor):
         """
         o3d.visualization.draw_geometries([self.POINT_CLOUD])
 
-    def rotate_camera(self, rotation: list) -> None:
+    def update_camera_orientation(self, rotation: list) -> None:
         """
         Rotate the camera.
 
@@ -240,21 +240,16 @@ class Camera(Sensor):
             None.
         """
 
-        rotation = p.getQuaternionFromEuler(rotation) if len(rotation) == 3 else rotation
-        self.ORI = rotation
-
-        # Rotate self.INIT_POS by the rotation matrix
-        # Convert to matrix
-        rotation_matrix = p.getMatrixFromQuaternion(rotation)
-        # Convert to numpy array
-        rotation_matrix = np.array(rotation_matrix).reshape(3, 3)
-        # Rotate the position
-        self.INIT_POS = list(np.matmul(rotation_matrix, self.INIT_POS))
+        self.ORI = p.getQuaternionFromEuler(rotation) if len(rotation) == 3 else rotation
 
         # Rotate the camera in the pybullet simulation.
         p.resetBasePositionAndOrientation(self.CAMERA, self.POS, self.ORI)
 
-    def translate_camera(self, vector: list) -> None:
+        print("Camera orientation:", self.ORI)
+        # print orientation in euler angles
+        print("Camera orientation (euler):", p.getEulerFromQuaternion(self.ORI))
+
+    def update_camera_position(self, vector: list) -> None:
         """
         Translate the camera.
 
@@ -266,11 +261,16 @@ class Camera(Sensor):
             None.
         """
 
-        self.POS = [self.INIT_POS[0] + vector[0], self.INIT_POS[1] + vector[1], self.INIT_POS[2] + vector[2]]
+        self.POS = vector
 
         # Translate the camera in the pybullet simulation.
         p.resetBasePositionAndOrientation(self.CAMERA, self.POS, self.ORI)
-
+        
+        euler = p.getEulerFromQuaternion(self.ORI)
+        magnitude_init_pos = np.sqrt(self.INIT_POS[0]**2 + self.INIT_POS[1]**2)
+        self.TARGET_POS = [self.POS[0] + magnitude_init_pos*np.cos(euler[2] * np.pi / 180), self.POS[1] + magnitude_init_pos * np.sin(euler[2] * np.pi/180), self.INIT_POS[2]]
+        
+        print("Camera position:", self.POS)
 
 class Reconstruction:
 
@@ -303,9 +303,11 @@ class Reconstruction:
         plt.show()          
 
     def point_cloud(self):
+        start = time.time()
         self.pcd = np.hstack(
             (np.transpose(np.nonzero(self.depth_map)), np.reshape(self.depth_map[np.nonzero(self.depth_map)], (-1,1)) )
         )  # (xxx, 3)
+
         self.pcd[:, [0, 1]] = self.pcd[:, [1, 0]]  # swap x and y axis since they are reversed in image coordinates
 
         self.pcd[:, 0] = (self.pcd[:, 0] - self.cx) * self.pcd[:, 2] / self.fx

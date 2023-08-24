@@ -1,6 +1,6 @@
 import numpy as np
 import pybullet as p
-from utilities import utils
+from repository.utilities import utils
 
 # TODO:
 # - create car constraints from yaml since it's to jargon.
@@ -161,9 +161,11 @@ class Car():
         Raises:
             None.
         """
-        print("Updating camera pose...")
-        # self.sensors['camera'].translate_camera([x, y, 0])
-        # self.sensors['camera'].rotate_camera([0, 0, yaw])
+        # print("Updating camera pose...")
+        current_ori = self.sensors['camera'].INIT_ORI
+        current_pos = self.sensors['camera'].INIT_POS
+        self.sensors['camera'].update_camera_orientation([current_ori[0], current_ori[1] , current_ori[2] + yaw])
+        self.sensors['camera'].update_camera_position([x + current_pos[0], y + current_pos[1], current_pos[2]])
 
 
     def get_ctrl_data(self) -> None:
@@ -267,7 +269,7 @@ class Car():
         # yaw_world_frame = utils.get_yaw(coord)
         # yaw = self.__get_car_yaw(coord, yaw_world=yaw_world_frame)
         # yaw = np.array(yaw).reshape(-1, )
-        
+
         coord = np.array(coord).reshape(-1, )
 
         # Car's yaw (theta) in world coordinate frame. (Range: [-pi, pi])

@@ -6,7 +6,7 @@ import numpy as np
 import pybullet as p
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
-from utilities import utils, geometry_utils
+from repository.utilities import utils, geometry_utils
 import time
 
 class Sim():
@@ -120,7 +120,7 @@ class Sim():
             self.__place_obstacles(custom=self.custom)
         
         # Place the goal.
-        # self.__place_goal(loc=goal_loc)
+        self.__place_goal(loc=goal_loc)
 
         self.fig, self.ax = plt.subplots()
 
@@ -183,11 +183,13 @@ class Sim():
         Display the environment as an image, for use in Google Colab notebooks.
         """
 
+        DISTANCE = 20
+
         # Get the camera view matrix
         view_matrix = p.computeViewMatrixFromYawPitchRoll(
-            cameraTargetPosition=[0.055, -0.07, 0],
-            distance=5,
-            yaw=270,
+            cameraTargetPosition=[0, 0, 0],
+            distance=DISTANCE,
+            yaw=90,
             pitch=-90,
             roll=0,
             upAxisIndex=2,
@@ -196,28 +198,26 @@ class Sim():
 
         # Get the camera projection matrix
         proj_matrix = p.computeProjectionMatrixFOV(
-            fov=55,
+            fov=60,
             aspect=1.0,
-            nearVal=1.0,
-            farVal=10.0,
+            nearVal=0.1,
+            farVal=100.0,
             physicsClientId=self.CLIENT
         )
 
         # Reset the camera pose to view the entire map
         p.resetDebugVisualizerCamera(
-            cameraDistance=5,
-            cameraYaw=270,
+            cameraDistance=DISTANCE,
+            cameraYaw=90,
             cameraPitch=-90,
-            cameraTargetPosition=[0.055, -0.07, 0],
+            cameraTargetPosition=[0, 0, 0],
             physicsClientId=self.CLIENT
         )
 
-        side_length = 50
-
         # Get the image from the camera
         (_, _, px, _, _) = p.getCameraImage(
-            width=side_length,
-            height=side_length,
+            width=224,
+            height=224,
             viewMatrix=view_matrix,
             projectionMatrix=proj_matrix,
             renderer=p.ER_BULLET_HARDWARE_OPENGL,
@@ -226,15 +226,18 @@ class Sim():
 
         # Convert RGB array to image
         rgb_array = np.array(px, dtype=np.uint8)
-        rgb_array = np.reshape(rgb_array, (side_length, side_length, 4))
+        rgb_array = np.reshape(rgb_array, (224, 224, 4))
         rgb_array = rgb_array[:, :, :3]
 
         # Display the image
-        plt.clf()
+        time.sleep(0.05)
         clear_output(wait=True)
         plt.imshow(rgb_array)
-        plt.show(block=False)
-        plt.pause(0.01)
+        # Find average color of the image
+        avg_color = np.mean(rgb_array, axis=(0, 1))
+        print(avg_color)
+        plt.show()
+
 
     def __place_goal(self, loc=None):
         goal = utils.create_box(
@@ -325,8 +328,7 @@ class Sim():
                 body = utils.create_box(self.obs_w, self.obs_w, self.obs_h, color=self.obs_color)
                 obstacles.append(body)
 
-            locs = [(2.5/2., 2.5/2.), (-2.5/2., 2.5/2.),
-                    (-2.5/2., -2.5/2.), (2.5/2., -2.5/2.)]
+            locs = self.__select_random_locs(self.n_obs, self.obs_w)
             self.obstacle_coordinates = locs
             for obst, coords in zip(obstacles, locs):
                 x = coords[0]
