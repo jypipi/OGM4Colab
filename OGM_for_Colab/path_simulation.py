@@ -1,8 +1,7 @@
 from math import *
 import numpy as np
-import PID_controller as pid
-from pyrc3d.agent import Car
-# from pynput import keyboard
+# import PID_controller as pid
+# from pyrc3d.agent import Car
 
 class PathSimulator():
     """
@@ -11,7 +10,7 @@ class PathSimulator():
     """
     def __init__(
             self,
-            car:Car,
+            car,
             sim_fps,
             acceleration=10.0,
             max_velocity=30.0,
