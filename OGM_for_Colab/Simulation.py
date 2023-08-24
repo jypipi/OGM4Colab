@@ -8,29 +8,31 @@
 # return the dataset.
 # ------------------------------------------------------------------
 
-try:
-    from pynput import keyboard
-except:
-    print("You do not have pynput installed! Run: pip install pynput")
+import sys
+sys.path.insert(0, '/content/test')
+!cd /
+from google.colab import output
 
-from pyrc3d.agent import Car
-from pyrc3d.simulation import Sim
-from pyrc3d.sensors import Lidar
+from OGM_for_Colab.pyrc3d.agent import Car
+from OGM_for_Colab.pyrc3d.simulation import Sim
+from OGM_for_Colab.pyrc3d.sensors import Lidar
 
-from utilities.timings import Timings
+from OGM_for_Colab.utilities.timings import Timings
 
-from path_simulation import PathSimulator
+from OGM_for_Colab.path_simulation import PathSimulator
 
 import numpy as np
 from math import *
 from yaml import safe_load
 
+%matplotlib inline
+
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-ENV_PATH = "configs/env/simple_env.yaml"
-CAR_PATH = "configs/car/car_config.yaml"
-CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
+ENV_PATH = "/content/test/OGM_for_Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/test/OGM_for_Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/test/OGM_for_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
@@ -46,13 +48,10 @@ COLLECT_DATA_FPS = 2 # Collect data frequency
 SENSORS = [Lidar]
 
 # Load car and sensor configurations
-with open(CAR_PATH, 'r') as file:
-    carConfig = safe_load(file)
-
-RAY_LENGTH = carConfig['lidar_configs']['ray_len'] # length of each ray
-RAY_COUNT = carConfig['lidar_configs']['num_rays'] # number of laser ray
-RAY_START_ANG = carConfig['lidar_configs']['lidar_angle1'] # angle b/w robot and the 1st ray
-RAY_END_ANG = carConfig['lidar_configs']['lidar_angle2'] # angle b/w robot and the last ray
+RAY_LENGTH = 2.0 # length of each ray
+RAY_COUNT = 50 # number of laser ray
+RAY_START_ANG = 45 # angle b/w robot and the 1st ray
+RAY_END_ANG = 135 # angle b/w robot and the last ray
 ###############################################################################
 
 class Simulation():
@@ -102,7 +101,7 @@ class Simulation():
         # Initialize environment
         self.sim.create_env(
                 env_config=ENV_PATH,
-                # custom_env_path='custom_map.txt'
+                GUI=False
             )
         
         # Set simulation response time
@@ -125,7 +124,7 @@ class Simulation():
         )
 
         # Initialize path simulator
-        path_sim = PathSimulator(car, PATH_SIM_FPS)
+        # path_sim = PathSimulator(car, PATH_SIM_FPS)
 
         t = 0
         dataset = {}
@@ -155,7 +154,7 @@ class Simulation():
 
             ########################################### Perform controls
             if path_sim_time.update_time():
-                vel, steering = path_sim.navigate(x, y, yaw)
+                vel, steering = 10.0, 0.0 #path_sim.navigate(x, y, yaw)
 
                 if vel == float('inf'):
                     break
@@ -165,6 +164,7 @@ class Simulation():
 
                 # Advance one time step in the simulation.
                 self.sim.step()
+                # self.sim.image_env()
 
         return dataset
 
@@ -183,7 +183,6 @@ def main():
     sim = Simulation()
     dataset = sim.collectData()
     return sim, dataset
-
 
 if __name__ == '__main__':
     main()
