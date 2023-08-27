@@ -133,9 +133,7 @@ class Simulation():
         dataset = {}
 
         while True:
-
             # try:
-
             # Get sensors' data: array of hit points (x, y) in world coord
             rays_data, dists, hitPoints = car.get_sensor_data(
                     sensor = 'lidar',
