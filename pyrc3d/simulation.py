@@ -237,11 +237,11 @@ class Sim():
         plt.imshow(rgb_array)
 
         #### For running on Colab
-        # plt.show(block=True)
-        
+        plt.show(block=True)
+
         #### For running on local computer
-        plt.show(block=False)
-        plt.pause(0.01)
+        # plt.show(block=False)
+        # plt.pause(0.01)
 
     def __place_goal(self, loc=None):
         goal = utils.create_box(
