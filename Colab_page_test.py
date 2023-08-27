@@ -203,7 +203,7 @@ class PathSimulator():
         # (x, y, heading, turn)
         self.waypoints = {
             1: (1.95, 0.0, 0.0, 0, 1), 2: (-1.95, 0.0, 0.0, 0, -1),
-            3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
+            # 3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
             # 5: (-1.95, -1.95, 3*pi/2, 1, 1),  6: (-1.95, 1.95, pi/2, 1)
         }
 
@@ -213,7 +213,7 @@ class PathSimulator():
         self.adjustment = 0.0
 
     def navigate(self, x, y, yaw):
-        if self.next == 4:
+        if self.next == 3:
             print('Reached end point.')
             return float('inf'), float('inf')
 
