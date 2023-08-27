@@ -183,9 +183,11 @@ class Sim():
         Display the environment as an image, for use in Google Colab notebooks.
         """
 
+        cameraTargetPosition = [0.02, 0.0, 0]
+
         # Get the camera view matrix
         view_matrix = p.computeViewMatrixFromYawPitchRoll(
-            cameraTargetPosition=[0.055, -0.07, 0],
+            cameraTargetPosition=cameraTargetPosition,
             distance=5,
             yaw=270,
             pitch=-90,
@@ -208,11 +210,11 @@ class Sim():
             cameraDistance=5,
             cameraYaw=270,
             cameraPitch=-90,
-            cameraTargetPosition=[0.055, -0.07, 0],
+            cameraTargetPosition=cameraTargetPosition,
             physicsClientId=self.CLIENT
         )
 
-        side_length = 50
+        side_length = 500
 
         # Get the image from the camera
         (_, _, px, _, _) = p.getCameraImage(
@@ -233,8 +235,10 @@ class Sim():
         plt.clf()
         clear_output(wait=True)
         plt.imshow(rgb_array)
-        plt.show(block=False)
-        plt.pause(0.01)
+        plt.show(block=True)
+
+        #### For running on local computer
+        # plt.show(block=False)
 
     def __place_goal(self, loc=None):
         goal = utils.create_box(

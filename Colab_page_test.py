@@ -9,6 +9,7 @@
 # import sys
 # sys.path.insert(0, '/content/test')
 # !cd /
+
 # from google.colab import output
 # %matplotlib inline
 
@@ -16,6 +17,11 @@ from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
 from pyrc3d.sensors import Lidar
 from utilities.timings import Timings
+
+# from Colab_branch.pyrc3d.simulation import Sim
+# from Colab_branch.pyrc3d.agent import Car
+# from Colab_branch.pyrc3d.sensors import Lidar
+# from Colab_branch.utilities.timings import Timings
 
 import numpy as np
 from math import *
@@ -28,6 +34,10 @@ from IPython.display import clear_output
 ENV_PATH = "configs/env/simple_env.yaml"
 CAR_PATH = "configs/car/car_config.yaml"
 CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
+
+# ENV_PATH = "/content/test/Colab_branch/configs/env/simple_env.yaml"
+# CAR_PATH = "/content/test/Colab_branch/configs/car/car_config.yaml"
+# CAR_URDF_PATH = "/content/test/Colab_branch/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
@@ -124,6 +134,8 @@ class Simulation():
 
         while True:
 
+            # try:
+
             # Get sensors' data: array of hit points (x, y) in world coord
             rays_data, dists, hitPoints = car.get_sensor_data(
                     sensor = 'lidar',
@@ -157,6 +169,10 @@ class Simulation():
                 # Advance one time step in the simulation.
                 self.sim.step()
                 self.sim.image_env()
+            # except KeyboardInterrupt:
+            #     self.sim.kill_env()
+
+        self.sim.kill_env()
 
         return dataset
 
@@ -189,7 +205,7 @@ class PathSimulator():
         # (x, y, heading, turn)
         self.waypoints = {
             1: (1.95, 0.0, 0.0, 0, 1), 2: (-1.95, 0.0, 0.0, 0, -1),
-            # 3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
+            3: (1.95, 0.0, 0.0, 0, 1), 4: (-1.95, 0.0, 0.0, 0, -1),
             # 5: (-1.95, -1.95, 3*pi/2, 1, 1),  6: (-1.95, 1.95, pi/2, 1)
         }
 
@@ -199,6 +215,10 @@ class PathSimulator():
         self.adjustment = 0.0
 
     def navigate(self, x, y, yaw):
+        if self.next == 4:
+            print('Reached end point.')
+            return float('inf'), float('inf')
+
         next_x, next_y, heading, turn, move = self.waypoints[self.next]
         self.dist2next = np.linalg.norm(
             np.array((next_x, next_y))-np.array((x, y)))
@@ -231,11 +251,6 @@ class PathSimulator():
             return self.velocity, self.steering
         else:
             self.next += 1
-            
-            if self.next == 3:
-                print('Reached end point.')
-                return float('inf'), float('inf')
-            
             print('Move to next point.')
             self.time_counter = 0
             self.ifTurn = False
