@@ -183,14 +183,16 @@ class Sim():
         Display the environment as an image, for use in Google Colab notebooks.
         """
 
-        cameraTargetPosition = [0.02, 0.0, 0]
+        cameraTargetPosition = [0.0, 0.02, 0]
+        camera_height = 5
+        yaw_angle, pitch_angle = 0, -90
 
         # Get the camera view matrix
         view_matrix = p.computeViewMatrixFromYawPitchRoll(
             cameraTargetPosition=cameraTargetPosition,
-            distance=5,
-            yaw=270,
-            pitch=-90,
+            distance=camera_height,
+            yaw=yaw_angle,
+            pitch=pitch_angle,
             roll=0,
             upAxisIndex=2,
             physicsClientId=self.CLIENT
@@ -207,9 +209,9 @@ class Sim():
 
         # Reset the camera pose to view the entire map
         p.resetDebugVisualizerCamera(
-            cameraDistance=5,
-            cameraYaw=270,
-            cameraPitch=-90,
+            cameraDistance=camera_height,
+            cameraYaw=yaw_angle,
+            cameraPitch=pitch_angle,
             cameraTargetPosition=cameraTargetPosition,
             physicsClientId=self.CLIENT
         )
@@ -231,17 +233,7 @@ class Sim():
         rgb_array = np.reshape(rgb_array, (side_length, side_length, 4))
         rgb_array = rgb_array[:, :, :3]
 
-        # Display the image
-        plt.clf()
-        clear_output(wait=True)
-        plt.imshow(rgb_array)
-
-        #### For running on Colab
-        plt.show(block=True)
-
-        #### For running on local computer
-        # plt.show(block=False)
-        # plt.pause(0.01)
+        return rgb_array
 
     def __place_goal(self, loc=None):
         goal = utils.create_box(

@@ -1,16 +1,15 @@
 # ------------------------------------------------------------------
 # Binary Bayes Filter implementation of Occupancy Grid Mapping
-# (OGM) | Status: COMPLETED (Version 2)
-#       | Contributors: Jeffrey, Muhammad
+# (OGM) | Status: COMPLETED (Version 4)
+#       | Contributors: Jeffrey Chen
 #
 # Update from previous version:
-# - Make it a class (modularize) for easier application.
-# - Separate it from simulation (make it another class).
-# - Separate data collection from data processing to increase speed.
+# - Enable to display a ray cone in grid map based on the user's choices.
+# - Tuned refresh rate and made some modifications to increase running speed.
+# - Fixed some bugs.
 #
 # Key assumptions in OGM:
-# - Robot positions (states) are known (i.e: its path is
-#   known).
+# - Robot positions (states) are known (i.e: its path is known).
 # - Occupancy of individual cells is independent.
 # - The area that corresponds to each cell is either
 #   completely free or occupied.
@@ -25,11 +24,15 @@
 #         p(m | z, x)
 # ------------------------------------------------------------------
 
-from Colab_page_test import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
+from Path_Sim import Simulation
 from math import *
 from decimal import *
+from IPython.display import clear_output
+from time import time
+from copy import deepcopy
+from util import World2Grid, Grid2World
 
 class OGM():
     """
@@ -38,15 +41,19 @@ class OGM():
 
     Attributes:
         sim (Simulation): Simulation of environment and robot.
-        dataset (dict): Set of robot's pose and ray hit points.
         res (float): Grid map resolution.
         log_prior (float): Prior log-odd value.
+        l_occ (float): Occupancy log-odd value.
+        l_free (float): Unoccupancy log-odd value.
         log_t (numpy 2D array): Array of log odd scores for all grids.
         gridMapSize (int): Side length (number of grids) of the grid map.
+        realMapSize (float): Side length of the real map.
+        probGridMap (numpy 2D array): Probabilistic grid map.
+        plotMap (numpy 2D array): Grid map with colored ray cone for plotting.
     """
 
 
-    def __init__(self, res, log_prior, sim, dataset):
+    def __init__(self, res, log_prior):
         """
         Constructor of OGM to initialize occupancy grid mapping.
 
@@ -55,67 +62,74 @@ class OGM():
             log_prior (float): Prior log-odd value.
         """
         
-        self.sim, self.dataset = sim, dataset
+        self.sim = Simulation()
         self.res = res
+        self.realMapSize = self.sim.sim.get_env_info()["map_size"]
+        self.gridMapSize = int(self.realMapSize/self.res)
+
+        # Set log-odds values
         self.log_prior = log_prior
-        self.log_t, self.gridMapSize = self.generate_grid_map()
-        
+        self.l_occ = log(0.55/0.45)
+        self.l_free = log(0.45/0.55)
+        self.log_t = np.zeros((self.gridMapSize, self.gridMapSize))
 
-    def generate_grid_map(self):
+        # Initialize the probabilistic grid map
+        self.probGridMap = 0.5 * np.ones((self.log_t.shape[0], self.log_t.shape[1]))
+        self.plotMap = None
+
+
+    def mapping(self, dataset):
         """
-        Generate a grid map as a matrix of zeros.
-        Agent does not know the occupancies of
-        each cell in the map: 
-            m_i_j = 0 for all i, j.
-
-        It will probabilistically updates it via
-        bayesian approach.
-        
-        Args:
-            None
-
-        Returns:
-            m: A numpy array of zeros of shape (map_size, map_size).
-            gridMapSize (int): Side length (number of grids) of the grid map.
-
-        Raises:
-            None.
-        """
-        map_size = self.sim.sim.get_env_info()["map_size"]
-        gridMapSize = int(map_size/self.res)
-        m = np.zeros((gridMapSize, gridMapSize))
-        return m, gridMapSize
-
-
-    def mapping(self) -> np.ndarray:
-        """
-        Main function to operate occupancy grid mapping.
+        Main function to operate occupancy grid mapping. It updates the log odd
+            scores and occupancy probabilities for the percepted grids.
 
         Parameters:
-            None
+            dataset (tuple): Robot's current pose and the array of the end
+                points for all laser rays.
         
         Returns:
-            probGridMap (numpy 2D array): Array representing
-                the occupancy probability of each grid in the map.
+            None
         """
 
-        for t in range(len(self.dataset)):
-            # Extract data at time t
-            pose, hitPoints = self.dataset[t][0], self.dataset[t][1]
+        pose, hitPoints = dataset[0], dataset[1]
+        rayConeGrids_World, Zt, measPhi, rayConeEnds_World = self.perceptedCells(pose, hitPoints)
+        self.plotMap = deepcopy(self.probGridMap)
+        self.rayConeEnds_Grid = \
+            [World2Grid(i, self.realMapSize, self.gridMapSize, self.res) for i in rayConeEnds_World]
 
-            # Update log odds
-            self.log_t = self.update_log_odds(hitPoints, pose)
-        
-        # Generate the probabilistic grid map based on the latest log odds
-        probGridMap = self.getProbGridMap()
+        # Update the log odds for all cells with the perceptual field of lidar
+        for grid in rayConeGrids_World:
+            grid_coord = World2Grid(grid, self.realMapSize, self.gridMapSize,
+                                    self.res)
+            i, j = grid_coord[1], grid_coord[0]
 
-        return probGridMap
+            self.log_t[i][j] += \
+                self.inv_sensor_model(pose, grid, Zt, self.sim.Z_max, measPhi) \
+                - self.log_prior
+            
+            # Convert to the occupancy probability
+            P_mi = 1 - 1/(1+np.exp(self.log_t[i][j]))
+
+            # Update the probabilistic grid map based on the latest log odds
+            # When the grid is likely to be occupied
+            if (P_mi > 0.5):
+                self.probGridMap[i][j] = 0 # set to zero to plot in black
+            # When the grid's status is likely undetermined
+            elif (P_mi == 0.5):
+                self.probGridMap[i][j] = 0.5 # set to 0.5 to plot in grey
+            # When the grid is likely to be free
+            else:
+                self.probGridMap[i][j] = 1 # set to one to plot in white
+
+            # Color the ray cone
+            self.plotMap[i][j] = 0.7
 
 
     def bresenham(self, x_start, y_start, x_end, y_end):
         """
         The function to determine the grids that a given line passes by,
-            based on the Bresenham's line algorithm.
+            based on the Bresenham's line algorithm. All coordinates are in the
+            world frame.
 
         Parameters:
             x_start (float): X coordinate of the starting point.
@@ -192,56 +206,58 @@ class OGM():
             hitPoints (array): Array of the end points for all laser rays.
         
         Returns:
-            rayConeGrids_World (numpy 2D array): Array of percepted grids in world coord.
+            rayConeGrids_World (numpy 2D array): Array of the percepted grids
+                in world coordinates.
             Zt (numpy 2D array): Array of range measurements for all rays.
-            measPhi (numpy 2D array): Array of relative angles between robot and rays.
+            measPhi (numpy 2D array): Array of relative angles between robot
+                and Lidar rays.
+            rayConeEnds_World (list): Array of the rays' end points.
         """
 
         rayConeGrids_World = np.array([(0, 0)])
         Zt = np.zeros(hitPoints.shape[0])
         measPhi = np.zeros(hitPoints.shape[0])
+        rayConeEnds_World = []
 
         # Iterate thru each ray to collect data
         for i in range(hitPoints.shape[0]):
             point = hitPoints[i]
 
-            # When there's no hit for a ray, determine its end point
+            # When there's no hit for a ray, determine its end point (world)
             if np.isnan(point[0]):
-                # Relative angle between robot and the ray (Range: RAY_START_ANG - RAY_END_ANG)
+                # Relative angle between robot and the ray
+                # (Range: RAY_START_ANG - RAY_END_ANG)
                 theta_body = Decimal(str(self.sim.rayStartAng)) \
                     + (Decimal(str(self.sim.beta)) * Decimal(str(i)))
-                # Convert to range: +- (RAY_END_ANG - RAY_START_ANG)/2 [positive: ccw]
+                # Convert to range: +- (RAY_END_ANG - RAY_START_ANG)/2 [+: ccw]
                 ray_robot_ang = Decimal(str(pi/2)) - theta_body
 
                 x0 = Decimal(str(self.sim.Z_max)) \
-                    * Decimal(str(cos(ray_robot_ang + Decimal(str(xt[2]))))) + Decimal(str(xt[0]))
+                    * Decimal(str(cos(ray_robot_ang + Decimal(str(xt[2]))))) \
+                    + Decimal(str(xt[0]))
                 y0 = Decimal(str(self.sim.Z_max)) \
-                    * Decimal(str(sin(ray_robot_ang + Decimal(str(xt[2]))))) + Decimal(str(xt[1]))
+                    * Decimal(str(sin(ray_robot_ang + Decimal(str(xt[2]))))) \
+                    + Decimal(str(xt[1]))
                 point = (float(x0), float(y0))
 
-            Zt[i] = sqrt((point[0]-xt[0])**2 + (point[1]-xt[1])**2)
-            measPhi[i] = atan2(point[1]-xt[1], point[0]-xt[0]) - xt[2]
-            
-            # Determine the starting and end grid centers in world coordinates
-            xt_grid = World2Grid(xt, self.gridMapSize, self.res)
-            xtGridWorld = Grid2World(xt_grid, self.gridMapSize, self.res)
-            end_grid = World2Grid(point, self.gridMapSize, self.res)
-            endGridWorld = Grid2World(end_grid, self.gridMapSize, self.res)
+            # Discard the invalid point
+            if (abs(point[0]) >= self.realMapSize/2.0) or \
+               (abs(point[1]) >= self.realMapSize/2.0):
+                continue
 
+            Zt[i] = np.sqrt((point[0]-xt[0])**2 + (point[1]-xt[1])**2)
+            measPhi[i] = np.arctan2(point[1]-xt[1], point[0]-xt[0]) - xt[2]
+            rayConeEnds_World.append(point)
+            
             # Determine the grids passed by the ray
-            ray_grids = self.bresenham(xtGridWorld[0],
-                                       xtGridWorld[1],
-                                       endGridWorld[0],
-                                       endGridWorld[1]
-                                       )
+            ray_grids = self.bresenham(xt[0], xt[1], point[0], point[1])
             
             rayConeGrids_World = np.concatenate((rayConeGrids_World, ray_grids),
-                                                 axis=0
-                                               )
+                                                 axis=0)
         
         rayConeGrids_World = np.unique(rayConeGrids_World[1:], axis=0)
 
-        return rayConeGrids_World, Zt, measPhi
+        return rayConeGrids_World, Zt, measPhi, rayConeEnds_World
 
 
     def inv_sensor_model(self, xt, grid_mi, Zt, Z_max, measPhi):
@@ -254,20 +270,17 @@ class OGM():
             grid_mi (tuple): World coordinate of grid center.
             Zt (numpy 2D array): Array of range measurements for all rays.
             Z_max (float): Maximum measurement range of lidar.
-            measPhi (numpy 2D array): Array of relative angles between robot and rays.
+            measPhi (numpy 2D array): Array of relative angles between robot
+                and Lidar rays.
         
         Returns:
             float: Log odd score update.
         """
 
-        # Set log-odds values
-        l_occ = log(0.55/0.45)
-        l_free = log(0.45/0.55)
-
         # Distance between robot and grid center
-        r = sqrt((grid_mi[0]-xt[0])**2 + (grid_mi[1]-xt[1])**2)
+        r = np.sqrt((grid_mi[0]-xt[0])**2 + (grid_mi[1]-xt[1])**2)
         # Relative angle between robot and grid center
-        phi = atan2(grid_mi[1]-xt[1], grid_mi[0]-xt[0]) - xt[2]
+        phi = np.arctan2(grid_mi[1]-xt[1], grid_mi[0]-xt[0]) - xt[2]
         # Index of the ray that corresponds to this measurement
         k = np.argmin(abs(np.subtract(phi, measPhi)))
 
@@ -277,74 +290,17 @@ class OGM():
             
             return self.log_prior
 
-        elif ((Zt[k] < Z_max) and (np.abs(r-Zt[k]) < self.res/2.0*sqrt(2))):
-            return l_occ
+        elif ((Zt[k] < Z_max) and (np.abs(r-Zt[k]) < self.res/2.0*np.sqrt(2))):
+            return self.l_occ
 
         elif (r < Zt[k]):
-            return l_free
+            return self.l_free
         
-
-    def update_log_odds(self, hitPoints, xt):
-        """
-        The function to update the log odd scores for the percepted grids.
-
-        Parameters:
-            hitPoints (array): Array of the end points for all laser rays.
-            xt (array): Robot pose [x, y, theta].
-        
-        Returns:
-            log_t (numpy 2D array): Updated array of log odd scores for all grids.
-        """
-
-        rayConeGrids_World, Zt, measPhi = self.perceptedCells(xt, hitPoints)
-
-        # Update the log odds for all cells with the perceptual field of lidar
-        for grid in rayConeGrids_World:
-            grid_coord = World2Grid(grid, self.gridMapSize, self.res)
-
-            self.log_t[grid_coord[0]][grid_coord[1]] += \
-                self.inv_sensor_model(xt, grid, Zt, self.sim.Z_max, measPhi) \
-                - self.log_prior
-
-        return self.log_t
+        else:
+            return 0.0
 
 
-    def getProbGridMap(self):
-        """
-        The function to obtain the probabilistic grid map, based on the latest log odds.
-
-        Parameters:
-            None
-        
-        Returns:
-            probGridMap (numpy 2D array): Array of occupancy probabilities of all grids.
-        """
-
-        # Initialize the probabilistic grid map
-        probGridMap = np.zeros((self.log_t.shape[0], self.log_t.shape[1]))
-
-        # Convert log odds to probabilities and set the occupancy status of grids
-        for i in range(self.log_t.shape[0]):
-            for j in range(self.log_t.shape[1]):
-
-                P_mi = 1 - 1/(1+exp(self.log_t[i][j]))
-
-                # When the grid is likely to be occupied
-                if (P_mi > 0.5):
-                    probGridMap[i][j] = 0 # set to zero for plotting in black
-
-                # When the grid's status is likely undetermined
-                elif (P_mi == 0.5):
-                    probGridMap[i][j] = 0.5 # set to 0.5 for plotting in grey
-
-                # When the grid is likely to be free
-                else:
-                    probGridMap[i][j] = 1 # set to one for plotting in white
-
-        return probGridMap
-
-
-    def plotGridMap(self, gridMap):
+    def plotGridMap(self):
         """
         The function to plot the probabilistic grid map.
             Black: the grid is occupied.
@@ -352,23 +308,24 @@ class OGM():
             Grey: Undetermined area.
 
         Parameters:
-            gridMap (numpy 2D array): Array of occupancy probabilities of grids.
+            None
         
         Returns:
             None
         """
 
+        gridMap = self.probGridMap
         plt.imshow(gridMap, cmap='gray', vmin = 0, vmax = 1, origin='lower')
+        plt.title('Final Grid Map')
         plt.show()
 
 
-    def saveGridMap(self, probGridMap, path: str=None):
+    def saveGridMap(self, path: str=None):
         """
         The function to save the probabilistic grid map to a text file.
         Default (path=None): save to the current directory.
 
         Parameters:
-            probGridMap (numpy 2D array): Array of occupancy probabilities of all grids.
             path (str): Path of the directory and filename.
         
         Returns:
@@ -376,68 +333,20 @@ class OGM():
         """
 
         if path != None:
-            return np.savetxt(path, probGridMap)
-        
-        return np.savetxt("probGridMap.txt", probGridMap)
+            return np.savetxt(path, self.probGridMap)
+        return np.savetxt("probGridMap.txt", self.probGridMap)
 
 
-def World2Grid(point, gridMapSize, res=0.1):
-    """
-    A helper method to determine the grid (in grid map coordinate)
-        that the given point (in world coordinate) belongs to.
-        It would also be imported and used by RRT implementation.
-
-    Parameters:
-        point (tuple): World coordinate of the point.
-        gridMapSize (int): Side length (number of grids) of the grid map.
-        res (float): Grid map resolution.
-    
-    Returns:
-        tuple: Grid map coordinate of the grid.
-    """
-
-    x, y = Decimal(str(point[0])), Decimal(str(point[1]))
-    gridSize, res = Decimal(str(gridMapSize)), Decimal(str(res))
-
-    i = int(np.floor((x + gridSize/2 * res) / res))
-    j = int(np.floor((y + gridSize/2 * res) / res))
-
-    return (i, j)
-    
-
-def Grid2World(grid, gridMapSize, res=0.1):
-    """
-    A helper method to convert a given grid map coordinate
-        to the world coordinate of the grid center.
-        It would also be imported and used by RRT implementation.
-
-    Parameters:
-        grid (tuple): Grid map coordinate.
-        gridMapSize (int): Side length (number of grids) of the grid map.
-        res (float): Grid map resolution.
-    
-    Returns:
-        tuple: Grid coordinate of the grid.
-    """
-
-    i, j = grid[0], grid[1]
-        
-    x = str((i * res) - (gridMapSize/2 * res) + res/2)
-    y = str((j * res) - (gridMapSize/2 * res) + res/2)
-
-    x = Decimal(x).quantize(Decimal("0.01"), rounding = "ROUND_HALF_UP")
-    y = Decimal(y).quantize(Decimal("0.01"), rounding = "ROUND_HALF_UP")
-
-    return (float(x), float(y))
-
-
-def main(resolution=0.1, log_prior=0.0, save_grid_map=False, path: str=None):
+def main(resolution, outputImage, rayConeType, log_prior=0.0,
+         save_grid_map=False, path: str=None):
     """
     The function to run the program, plot the grid map, and save the
         grid map as a text file if necessary.
 
     Parameters:
         resolution (float): Grid map resolution.
+        outputImage (int): 1 = display PyBullet image, 2 = otherwise.
+        rayConeType (int): 1 = Green Ray, 2 = Colored Grids.
         log_prior (float): Prior log-odd value.
         save_grid_map (bool): True = save to a text file, False otherwise.
         path (str): Path of the directory and filename. 
@@ -445,21 +354,87 @@ def main(resolution=0.1, log_prior=0.0, save_grid_map=False, path: str=None):
         None
     """
 
-    sim = Simulation()
-    dataset = sim.collectData()
-
-    ogm = OGM(resolution, log_prior, sim, dataset)
-
-    print("Data collection finished, now begin analyze...")
+    t0 = time()
     
-    probGridMap = ogm.mapping()
+    ogm = OGM(resolution, log_prior)
+    fig = plt.figure()
 
-    # Plot the grid map
-    ogm.plotGridMap(probGridMap)
+    while True:
+        # Get latest data
+        realMap, dataset, status = ogm.sim.collectData(outputImage)
+        carPos_grid = World2Grid(dataset[0], ogm.realMapSize,
+                                 ogm.gridMapSize, ogm.res)
+        ogm.mapping(dataset)
 
+        if status == -1:
+            plt.clf()
+            clear_output(wait=True)
+            break
+        
+        # Display occupancy grid map and real-time real map if needed
+        if outputImage == 2:
+            plt.clf()
+            clear_output(wait=True)
+            if rayConeType == 2:
+                plt.imshow(ogm.plotMap, cmap='gray', vmin=0, vmax=1,
+                           origin='lower')
+            elif rayConeType == 1:
+                plt.imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
+                           origin='lower')
+                for point in ogm.rayConeEnds_Grid:
+                    plt.plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
+            plt.scatter(carPos_grid[0], carPos_grid[1], s=80,
+                        marker='o', c='b', edgecolors='r')
+            plt.title('Real-time Grid Map')
+        else:
+            if realMap is not None:
+                plt.clf()
+                clear_output(wait=True)
+
+                fig.add_subplot(1, 2, 1)
+                plt.imshow(realMap)
+                plt.title('Physical World')
+
+                fig.add_subplot(1, 2, 2)
+                if rayConeType == 2:
+                    plt.imshow(ogm.plotMap, cmap='gray', vmin=0, vmax=1,
+                               origin='lower')
+                elif rayConeType == 1:
+                    plt.imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
+                               origin='lower')
+                    for point in ogm.rayConeEnds_Grid:
+                        plt.plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
+                plt.scatter(carPos_grid[0], carPos_grid[1], s=80,
+                            marker='o', c='b', edgecolors='r')
+                plt.title('Real-time Grid Map')
+        
+        #### For running on Colab
+        # plt.show(block=True)
+        #### For running on local computer
+        plt.show(block=False)
+        plt.pause(0.001)
+
+    print('Total run time:', floor((time()-t0)/60), 'min',
+          round((time()-t0)%60, 1), 'sec.')
+    
+    ogm.plotGridMap()
     if save_grid_map:
-        ogm.saveGridMap(probGridMap, path)
+        ogm.saveGridMap(path)
 
 
 if __name__ == '__main__':
-    main()
+    res = 0.1
+    input1 = input("Display PyBullet image? [1: True or 2: False]\n")
+    input2 = input("Ray cone display type? [1: Green Ray, 2: Colored Grids]\n")
+    outputImage = int(input1)
+    rayConeType = int(input2)
+    if outputImage == 1 or outputImage == 2:
+        if rayConeType == 1 or rayConeType == 2:
+            main(res, outputImage, rayConeType)
+        else:
+            print("Invalid choice of ray cone display type.")
+    else:
+        print("Invalid choice of whether display PyBullet image.")
+
+    # outputImage, rayConeType = True, 1
+    # main(res, outputImage, rayConeType)
