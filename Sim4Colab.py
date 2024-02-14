@@ -11,7 +11,7 @@
 # ------------------------------------------------------------------
 
 import sys
-sys.path.insert(0, '/content/test')
+sys.path.insert(0, '/content/OGM4Colab')
 !cd /
 
 from google.colab import output
@@ -32,9 +32,9 @@ from time import time
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-ENV_PATH = "/content/test/configs/env/simple_env.yaml"
-CAR_PATH = "/content/test/configs/car/car_config.yaml"
-CAR_URDF_PATH = "/content/test/configs/resources/f10_racecar/racecar_differential.urdf"
+ENV_PATH = "/content/OGM4Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/OGM4Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/OGM4Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
