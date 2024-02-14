@@ -119,7 +119,7 @@ class Simulation():
         # Initialize path simulator
         self.path_sim = PathSimulator(self.car, PATH_SIM_FPS)
 
-    def collectData(self, outputImage):
+    def collectData(self, outputImage: bool, begin=False):
         """
         The function to collect and store data while running the simulation.
 
@@ -133,6 +133,7 @@ class Simulation():
         """
 
         image = None
+        vel, steering = None, None
 
         # Get sensors' data: array of hit points (x, y) in world coord
         rays_data, dists, hitPoints = self.car.get_sensor_data(
@@ -159,7 +160,7 @@ class Simulation():
                 if outputImage:
                     image = self.sim.image_env()
                 self.sim.kill_env()
-                return image, dataset, -1
+                return image, dataset, -1, vel, steering
 
             # Perform action
             self.car.act(vel, steering)
@@ -167,11 +168,14 @@ class Simulation():
             # Advance one time step in the simulation.
             self.sim.step()
 
-        # Capture image of true map
-        if outputImage and self.capture_image_time.update_time():
+        # # Capture image of true map
+        # if outputImage and self.capture_image_time.update_time():
+        #     image = self.sim.image_env()
+                
+        if begin:
             image = self.sim.image_env()
 
-        return image, dataset, 1
+        return image, dataset, 1, vel, steering
 
 class PathSimulator():
     def __init__(
@@ -276,7 +280,7 @@ def main():
     sim = Simulation()
 
     while True:
-        image, dataset, status = sim.collectData(True)
+        image, dataset, status, vel, steering = sim.collectData(True)
 
         # Display the image
         if image is not None:
