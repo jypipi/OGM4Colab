@@ -12,23 +12,11 @@
 # path and a controller for the operation.
 # ------------------------------------------------------------------
 
-# import sys
-# sys.path.insert(0, '/content/OGM4Colab/Particle_Filter_V1')
-# !cd /
-
-from google.colab import output
-%matplotlib inline
-
 from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
 from pyrc3d.sensors import Lidar
 from utilities.timings import Timings
 from PID_controller import PID
-
-# from Colab_branch.pyrc3d.simulation import Sim
-# from Colab_branch.pyrc3d.agent import Car
-# from Colab_branch.pyrc3d.sensors import Lidar
-# from Colab_branch.utilities.timings import Timings
 
 import numpy as np
 from math import *
