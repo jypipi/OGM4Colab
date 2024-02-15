@@ -220,13 +220,13 @@ class ParticleFilter():
         plt.colorbar(label='Particle Weight', orientation='vertical', shrink=0.9)
 
         #### For running on Colab
-        # plt.show(block=True)
+        plt.show(block=True)
         #### For running on local computer
-        if end:
-            plt.show(block=True)
-        else:
-            plt.show(block=False)
-            plt.pause(0.0001)
+        # if end:
+        #     plt.show(block=True)
+        # else:
+        #     plt.show(block=False)
+        #     plt.pause(0.0001)
 
 def main():
     t0 = time()

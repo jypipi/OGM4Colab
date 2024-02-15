@@ -12,12 +12,12 @@
 # path and a controller for the operation.
 # ------------------------------------------------------------------
 
-# import sys
-# sys.path.insert(0, '/content/test')
-# !cd /
+import sys
+sys.path.insert(0, '/content/OGM4Colab/Particle_Filter_V1')
+!cd /
 
-# from google.colab import output
-# %matplotlib inline
+from google.colab import output
+%matplotlib inline
 
 from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
@@ -39,13 +39,16 @@ from time import time
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-ENV_PATH = "configs/env/simple_env.yaml"
-CAR_PATH = "configs/car/car_config.yaml"
-CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
 
-# ENV_PATH = "/content/test/Colab_branch/configs/env/simple_env.yaml"
-# CAR_PATH = "/content/test/Colab_branch/configs/car/car_config.yaml"
-# CAR_URDF_PATH = "/content/test/Colab_branch/configs/resources/f10_racecar/racecar_differential.urdf"
+#### For running on local computer
+# ENV_PATH = "configs/env/simple_env.yaml"
+# CAR_PATH = "configs/car/car_config.yaml"
+# CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
+
+#### For running on Colab
+ENV_PATH = "/content/OGM4Colab/Particle_Filter_V1/configs/env/simple_env.yaml"
+CAR_PATH = "/content/OGM4Colab/Particle_Filter_V1/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/OGM4Colab/Particle_Filter_V1/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
@@ -295,10 +298,10 @@ def main():
             break
         
         #### For running on Colab
-        # plt.show(block=True)
+        plt.show(block=True)
         #### For running on local computer
-        plt.show(block=False)
-        plt.pause(0.01)
+        # plt.show(block=False)
+        # plt.pause(0.01)
 
 if __name__ == '__main__':
     main()
