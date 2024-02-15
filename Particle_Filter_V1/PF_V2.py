@@ -216,7 +216,7 @@ class ParticleFilter():
             # colorVal = scalarMap.to_rgba(At[t,i,j])
             particle_pos = self.map.World2Grid((particle.pos[0], particle.pos[1]))
             plt.scatter(particle_pos[0], particle_pos[1], marker='o', s=3, c=particle.weight, cmap='rainbow')
-        plt.title('Real-time Map')
+        plt.title('Real-time Map with Particles')
         plt.colorbar(label='Particle Weight', orientation='vertical', shrink=0.9)
 
         #### For running on Colab
@@ -242,6 +242,8 @@ def main():
 
     pf = ParticleFilter(input_map, num_of_particles, dataset[0])
     pf.visualize(image) # display the initial particles
+
+    time_to_plot = False
 
     while True:
         image, dataset, status, vel, steering = sim.collectData(True)
