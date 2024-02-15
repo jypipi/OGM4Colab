@@ -181,11 +181,13 @@ class ParticleFilter():
                 ### Goal: resample based on the particle with the largest weight (replace self.robot.pos)
                 while np.abs(x) > self.map.realMapSize/2:
                     x = np.random.normal(self.robot.pos[0], 1, 1)
+                    x = x[0]
                 while np.abs(y) > self.map.realMapSize/2:
                     y = np.random.normal(self.robot.pos[1], 1, 1)
+                    y = y[0]
                 count += 1
                 
-            new_particles.append(self.Particle(x[0], y[0], self.particles[i].yaw, new_weight))
+            new_particles.append(self.Particle(x, y, self.particles[i].yaw, new_weight))
 
         self.particles = np.array(new_particles)
 
