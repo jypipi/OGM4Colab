@@ -12,9 +12,9 @@
 # path and a controller for the operation.
 # ------------------------------------------------------------------
 
-import sys
-sys.path.insert(0, '/content/OGM4Colab/Particle_Filter_V1')
-!cd /
+# import sys
+# sys.path.insert(0, '/content/OGM4Colab/Particle_Filter_V1')
+# !cd /
 
 from google.colab import output
 %matplotlib inline
