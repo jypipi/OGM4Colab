@@ -185,7 +185,7 @@ class ParticleFilter():
                     y = np.random.normal(self.robot.pos[1], 1, 1)
                 count += 1
                 
-            new_particles.append(self.Particle(x, y, self.particles[i].yaw, new_weight))
+            new_particles.append(self.Particle(x[0], y[0], self.particles[i].yaw, new_weight))
 
         self.particles = np.array(new_particles)
 
