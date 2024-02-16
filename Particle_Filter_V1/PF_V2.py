@@ -234,7 +234,7 @@ def main():
     t0 = time()
     num_of_particles = 75
 
-    sim_FPS = 1
+    sim_FPS = 0.5
     path_sim_time = Timings(sim_FPS)
 
     sim = Simulation()
