@@ -12,23 +12,11 @@
 # path and a controller for the operation.
 # ------------------------------------------------------------------
 
-# import sys
-# sys.path.insert(0, '/content/test')
-# !cd /
-
-# from google.colab import output
-# %matplotlib inline
-
 from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
 from pyrc3d.sensors import Lidar
 from utilities.timings import Timings
 from PID_controller import PID
-
-# from Colab_branch.pyrc3d.simulation import Sim
-# from Colab_branch.pyrc3d.agent import Car
-# from Colab_branch.pyrc3d.sensors import Lidar
-# from Colab_branch.utilities.timings import Timings
 
 import numpy as np
 from math import *
@@ -39,13 +27,16 @@ from time import time
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-ENV_PATH = "configs/env/simple_env.yaml"
-CAR_PATH = "configs/car/car_config.yaml"
-CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
 
-# ENV_PATH = "/content/test/Colab_branch/configs/env/simple_env.yaml"
-# CAR_PATH = "/content/test/Colab_branch/configs/car/car_config.yaml"
-# CAR_URDF_PATH = "/content/test/Colab_branch/configs/resources/f10_racecar/racecar_differential.urdf"
+#### For running on local computer
+# ENV_PATH = "configs/env/simple_env.yaml"
+# CAR_PATH = "configs/car/car_config.yaml"
+# CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
+
+#### For running on Colab
+ENV_PATH = "/content/OGM4Colab/OGM_Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/OGM4Colab/OGM_Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/OGM4Colab/OGM_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
@@ -119,7 +110,7 @@ class Simulation():
         # Initialize path simulator
         self.path_sim = PathSimulator(self.car, PATH_SIM_FPS)
 
-    def collectData(self, outputImage):
+    def collectData(self, outputImage: bool):
         """
         The function to collect and store data while running the simulation.
 
@@ -291,10 +282,10 @@ def main():
             break
         
         #### For running on Colab
-        # plt.show(block=True)
+        plt.show(block=True)
         #### For running on local computer
-        plt.show(block=False)
-        plt.pause(0.01)
+        # plt.show(block=False)
+        # plt.pause(0.01)
 
 if __name__ == '__main__':
     main()

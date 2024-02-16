@@ -409,10 +409,10 @@ def main(resolution, outputImage, rayConeType, log_prior=0.0,
                 plt.title('Real-time Grid Map')
         
         #### For running on Colab
-        # plt.show(block=True)
+        plt.show(block=True)
         #### For running on local computer
-        plt.show(block=False)
-        plt.pause(0.001)
+        # plt.show(block=False)
+        # plt.pause(0.001)
 
     print('Total run time:', floor((time()-t0)/60), 'min',
           round((time()-t0)%60, 1), 'sec.')
