@@ -191,8 +191,8 @@ class ParticleFilter():
 
         self.particles = np.array(new_particles)
 
-        if count != 0:
-            print("outliers resampled:", count)
+        # if count != 0:
+        #     print("outliers resampled:", count)
             
     def visualize(self, image, end=False):
         # if image is None:
