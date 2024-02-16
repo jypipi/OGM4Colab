@@ -388,25 +388,24 @@ def main(resolution, outputImage, rayConeType, log_prior=0.0,
             plt.title('Real-time Grid Map')
         else:
             if realMap is not None:
-                plt.clf()
                 clear_output(wait=True)
 
-                fig.add_subplot(1, 2, 1)
-                plt.imshow(realMap)
-                plt.title('Physical World')
+                fig, ax = plt.subplots(nrows=1, ncols=2)
 
-                fig.add_subplot(1, 2, 2)
+                ax[0].imshow(realMap)
+                ax[0].set_title('Physical World')
+
                 if rayConeType == 2:
-                    plt.imshow(ogm.plotMap, cmap='gray', vmin=0, vmax=1,
-                               origin='lower')
+                    ax[1].imshow(ogm.plotMap, cmap='gray', vmin=0, vmax=1,
+                                 origin='lower')
                 elif rayConeType == 1:
-                    plt.imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
-                               origin='lower')
+                    ax[1].imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
+                                 origin='lower')
                     for point in ogm.rayConeEnds_Grid:
-                        plt.plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
-                plt.scatter(carPos_grid[0], carPos_grid[1], s=80,
-                            marker='o', c='b', edgecolors='r')
-                plt.title('Real-time Grid Map')
+                        ax[1].plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
+                ax[1].scatter(carPos_grid[0], carPos_grid[1], s=80,
+                              marker='o', c='b', edgecolors='r')
+                ax[1].set_title('Real-time Grid Map')
         
         #### For running on Colab
         plt.show(block=True)

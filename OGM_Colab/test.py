@@ -373,7 +373,6 @@ def main(resolution, outputImage, rayConeType, log_prior=0.0,
         
         # Display occupancy grid map and real-time real map if needed
         if realMap is not None:
-            plt.clf()
             clear_output(wait=True)
 
             fig, ax = plt.subplots(nrows=1, ncols=2)
