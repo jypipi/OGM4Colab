@@ -376,18 +376,18 @@ def main(resolution, outputImage, rayConeType, log_prior=0.0,
             plt.clf()
             clear_output(wait=True)
 
-            fig, ax = plt.subplots(1, 2, sharex='col', sharey='row')
+            fig, ax = plt.subplots(nrows=1, ncols=2)
 
-            ax[0, 0].imshow(realMap)
-            ax[0, 0].title('Physical World')
+            ax[0].imshow(realMap)
+            ax[0].set_title('Physical World')
 
-            ax[0, 1].imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
+            ax[1].imshow(ogm.probGridMap, cmap='gray', vmin=0, vmax=1,
                             origin='lower')
             for point in ogm.rayConeEnds_Grid:
-                    ax[0, 1].plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
-            ax[0, 1].scatter(carPos_grid[0], carPos_grid[1], s=80,
-                        marker='o', c='b', edgecolors='r')
-            ax[0, 1].title('Real-time Grid Map')
+                ax[1].plot([carPos_grid[0], point[0]], [carPos_grid[1], point[1]], c='g')
+            ax[1].scatter(carPos_grid[0], carPos_grid[1], s=80,
+                          marker='o', c='b', edgecolors='r')
+            ax[1].set_title('Real-time Grid Map')
 
             # fig.add_subplot(1, 2, 1)
             # plt.imshow(realMap)
