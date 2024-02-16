@@ -143,21 +143,21 @@ class Simulation():
             self.car.simulate_sensor('lidar', rays_data)
 
         # Perform car's movement
-        if self.path_sim_time.update_time():
-            vel, steering = self.path_sim.navigate(x, y, yaw)
+        # if self.path_sim_time.update_time():
+        vel, steering = self.path_sim.navigate(x, y, yaw)
 
-            if vel == float('inf'):
-                print('Arrived destination.')
-                if outputImage:
-                    image = self.sim.image_env()
-                self.sim.kill_env()
-                return image, dataset, -1, vel, steering
+        if vel == float('inf'):
+            print('Arrived destination.')
+            if outputImage:
+                image = self.sim.image_env()
+            self.sim.kill_env()
+            return image, dataset, -1, vel, steering
 
-            # Perform action
-            self.car.act(vel, steering)
+        # Perform action
+        self.car.act(vel, steering)
 
-            # Advance one time step in the simulation.
-            self.sim.step()
+        # Advance one time step in the simulation.
+        self.sim.step()
 
         # # Capture image of true map
         # if outputImage and self.capture_image_time.update_time():
