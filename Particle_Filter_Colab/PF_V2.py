@@ -1,3 +1,20 @@
+# ------------------------------------------------------------------
+# 2D Particle Filter Implementation with PyBullet
+# (PF2D) | Status: COMPLETED (Version 2)
+#        | Contributors: Jeffrey
+#
+# Key assumptions in PF:
+# - Robot positions (states) are known
+# - Landmark positions are known
+# - There is sensor and motion noise.
+# - Particles are initially generated with uniform distribution.
+# - The world is static (obstacles are assumed to be not moving)
+#
+# Problem setting:
+#     Given measurement data z, robot state x, and control input u,
+#     find the estimated state bel(x_t)
+# ------------------------------------------------------------------
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
@@ -17,7 +34,9 @@ class Map():
         self.landmarks = [(2.5/2., 2.5/2.),   (-2.5/2., 2.5/2.),
                           (-2.5/2., -2.5/2.), (2.5/2., -2.5/2.)]
         scale_idx = 3
-        self.map = cv2.resize(self.map, dsize=(50*scale_idx, 50*scale_idx), interpolation=cv2.INTER_NEAREST)
+        self.map = cv2.resize(self.map,
+                              dsize=(50*scale_idx, 50*scale_idx),
+                              interpolation=cv2.INTER_NEAREST)
         res /= scale_idx
         self.realMapSize = realMapSize
         self.gridMapSize = int(self.realMapSize/res)
@@ -39,7 +58,7 @@ class ParticleFilter():
             self.pos = np.array([x, y])
             self.yaw = yaw
 
-    def __init__(self, input_map: Map, num_particles, robot_pose):
+    def __init__(self, input_map: Map, num_particles: int, robot_pose):
         ''' 
         The constructor initializes certain parameters and the robot on the map, 
         while updating the robot and particle states and weights after a key event.
@@ -51,7 +70,6 @@ class ParticleFilter():
              - landmark positions 
              - number of particles
         '''
-
         self.map = input_map
 
         # Initialize robot
@@ -60,76 +78,104 @@ class ParticleFilter():
         # motion and measurement noise
         self.motion_noise = 0.02
         self.turn_noise = 0.02
-        self.measurement_noise = 0.5
+        self.bearing_noise = 0.02
+        self.distance_noise = 0.5
 
         # position of landmarks
-        self.landmarks = self.map.landmarks
+        self.landmarks = np.array(self.map.landmarks)
 
         # Initialize particles
         self.num_particles = num_particles
         self.particles = []
-        self.weights = np.ones(self.num_particles)
-        self.generate_particles()
+        self.weights = np.ones(self.num_particles) / self.num_particles
 
-    def generate_particles(self):
-        '''
-        This method creates the particles object which is a num_particles x 3 numpy array.
-        '''
         weight = 1 / self.num_particles
-        # Xs = np.random.normal(self.robot.pos[0], 1, self.num_particles)
-        # Ys = np.random.normal(self.robot.pos[1], 1, self.num_particles)
         Xs = np.random.uniform(-2.45, 2.45, self.num_particles)
         Ys = np.random.uniform(-2.45, 2.45, self.num_particles)
         yaws = np.random.uniform(0, 2*pi, self.num_particles)
-        for i in range(self.num_particles):
-            self.particles.append(self.Particle(Xs[i], Ys[i], yaws[i], weight))
-        self.particles = np.array(self.particles)
-        self.weights *= weight
+        self.particles = np.array([self.Particle(Xs[i], Ys[i], yaws[i], weight)
+                                   for i in range(self.num_particles)])
         
     def prediction_step(self, new_robot_pose):
         '''
         This method performs the prediction step and changes the state of the particles. 
         '''
         new_robot_pos = np.array(new_robot_pose[0:2])
+        # Find out the change in robot's pose
         dx, dy = new_robot_pos - self.robot.pos
         d_yaw = new_robot_pose[2] - self.robot.yaw
+        # Update robot's current pose
         self.robot.pos, self.robot.yaw = new_robot_pos, new_robot_pose[2]
-        for particle in self.particles:
-            motion_noise = np.random.normal(0, self.motion_noise, 2)
-            turn_noise = np.random.normal(0, self.turn_noise, 1)
-            particle.pos[0] += dx + motion_noise[0]
-            particle.pos[1] += dy + motion_noise[1]
-            particle.yaw = (particle.yaw + pi + d_yaw + turn_noise[0]) % (2*pi) - pi
+
+        # Perform control on all particles based on the robot's motion
+        turn_noises = np.random.normal(0, self.turn_noise, self.num_particles)
+        motion_noises_x = np.random.normal(0, self.motion_noise, self.num_particles)
+        motion_noises_y = np.random.normal(0, self.motion_noise, self.num_particles)
+        for i in range(self.num_particles):
+            particle = self.particles[i]
+            particle.pos[0] += dx + motion_noises_x[i]
+            particle.pos[1] += dy + motion_noises_y[i]
+            particle.yaw = (particle.yaw + pi + d_yaw + turn_noises[i]) % (2*pi) - pi
 
     def update_step(self):
         '''
         This method performs the update step and updates the weights of all particles.
 
         Measures:
-            - Distance between robot and each landmark with measurement noise (Gaussian distribution)
+            - Distance between robot and each landmark with measurement noise (Gaussian)
+            - Bearing between robot's orientation and each landmark with measurement noise (Gaussian)
             - Distance between each particle and each landmark
-            - Joint probability of each particle based on the above distances
+            - Bearing between each particle's orientation and each landmark
+            - Joint probability of each particle based on the above measurements
         '''
-        # Calculate robot's distance measurements to all landmarks
-        num_landmarks = len(self.landmarks)
-        dists_r2l = np.zeros((num_landmarks))
-        for i in range(num_landmarks):
-            dists_r2l[i] = np.linalg.norm(self.robot.pos - np.array(self.landmarks[i])) \
-                         + np.random.normal(0, self.measurement_noise, 1) # introduce the measurement noise
+        def calc_bearing(landmark, target):
+            vec_t2l = np.array(landmark) - target.pos
+            theta_l2x = np.arctan2(vec_t2l[1], vec_t2l[0])
+            theta_l2y = theta_l2x - pi/2
+            if theta_l2x >= pi/2 or theta_l2x < -pi/2:
+                theta_l2y %= pi
+            bearing = theta_l2y - target.yaw
+            if bearing > pi:
+                bearing -= 2*pi
+            elif bearing < -pi:
+                bearing += 2*pi
 
-        # Calculate weights based on the distance between each particle and all landmarks
-        p_x = lambda x, dist_meas: np.exp(-((x-dist_meas)**2)/(2*(self.measurement_noise**2))) / np.sqrt(2*pi*(self.measurement_noise**2))
-        weights = np.zeros(self.num_particles)
-        for i in range(self.num_particles):
-            probability = 1
-            for j in range(num_landmarks):
-                dist_meas = np.linalg.norm(self.particles[i].pos-np.array(self.landmarks[j]))
-                # Calculate the likelihood of this particle based on the robot's measurements under 1D Gaussian distribution
-                probability *= p_x(dists_r2l[j], dist_meas)
-            weights[i] = probability
+            return bearing
         
-        normalized_weights = weights / np.sum(weights)
-        self.weights = normalized_weights
+        num_landmarks = self.landmarks.shape[0]
+
+        # Calculate distance and bearing measurements to all landmarks
+        robot_pos_pile = np.tile(self.robot.pos, (num_landmarks, 1))
+        dists_r2l = np.linalg.norm(robot_pos_pile-self.landmarks, axis=1) \
+                  + np.random.normal(0, self.distance_noise, num_landmarks)
+        bear_noise = np.random.normal(0, self.bearing_noise, num_landmarks)
+        bearing_rnl = np.array([calc_bearing(self.landmarks[i], self.robot) + bear_noise[i]
+                                for i in range(num_landmarks)])
+
+        # Calculate each particle's relative distance and bearing measurements to all landmark
+        dist_meas = np.array(
+            [np.linalg.norm(particle.pos-landmark)
+             for particle in self.particles for landmark in self.landmarks]
+        ).reshape(self.num_particles, num_landmarks)
+        bear_meas = np.array(
+            [calc_bearing(landmark, particle)
+             for particle in self.particles for landmark in self.landmarks]
+        ).reshape(self.num_particles, num_landmarks)
+        
+        # Calculate the likelihood/weight of each particle based on distance and bearing measurements (joint probability (product) of two 1D Gaussian pdfs)
+        denom = 2 * pi * self.distance_noise * self.bearing_noise
+        weights = np.array(
+            [(np.exp(-((dists_r2l[j]-dist_meas[i,j])**2)/(2*(self.distance_noise**2))) \
+              * np.exp(-((bearing_rnl[j]-bear_meas[i,j])**2)/(2*(self.bearing_noise**2))))
+             for i in range(self.num_particles) for j in range(num_landmarks)]
+        ).reshape(self.num_particles, num_landmarks)
+        weights = np.prod(weights/denom, axis=1)
+
+        weight_sum = np.sum(weights)
+        if weight_sum != 0.0:
+            self.weights = weights / weight_sum # normalized weights
+        else:
+            self.weights = weights
     
     def resampling(self):
         '''
@@ -152,7 +198,6 @@ class ParticleFilter():
 
             x, y = self.particles[i].pos
             if abs(x) > self.map.realMapSize/2 or abs(y) > self.map.realMapSize/2:
-                ### Goal: resample based on the particle with the largest weight (replace self.robot.pos)
                 while np.abs(x) > self.map.realMapSize/2:
                     x = np.random.normal(self.robot.pos[0], 1, 1)
                     x = x[0]
@@ -170,46 +215,38 @@ class ParticleFilter():
         #     print("outliers resampled:", count)
             
     def visualize(self, image, end=False):
-        # if image is None:
-        #     return
-
         plt.clf()
         clear_output(wait=True)
 
-        # # self.figure.add_subplot(1, 2, 1)
-        # plt.imshow(image)
-        # plt.title('Physical World')
-
-        # self.figure.add_subplot(1, 2, 2)
         cmap = plt.get_cmap('rainbow', self.num_particles)
-        cNorm  = colors.Normalize(vmin=0, vmax=0.1)
+        cNorm  = colors.Normalize(vmin=0, vmax=0.5)
         scalarMap = cmx.ScalarMappable(norm=cNorm,cmap=cmap)
 
         plt.imshow(self.map.map, cmap='gray', vmin=0, vmax=1, origin='lower')
         robot_pos = self.map.World2Grid((self.robot.pos[0], self.robot.pos[1]))
-        plt.scatter(robot_pos[0], robot_pos[1], s=180, marker='o', color='b', edgecolors='r')
+        plt.scatter(robot_pos[0], robot_pos[1],
+                    s=180, marker='o', color='b', edgecolors='r')
         plt.arrow(robot_pos[0], robot_pos[1],
                   18*np.cos(self.robot.yaw), 18*np.sin(self.robot.yaw),
                   head_width=3, head_length=7, length_includes_head=True,
                   color='b', linewidth=2)
         
-        max_weight, max_point_idx, checked = np.max(self.weights), None, False
+        max_weight = np.max(self.weights)
+        max_point_idx = np.argwhere(self.weights == max_weight).flatten()[0]
         for i in range(self.num_particles+1):
             if i == self.num_particles:
                 particle = self.particles[max_point_idx]
                 curr_weight = max_weight
+            elif i == max_point_idx:
+                continue
             else:
                 particle = self.particles[i]
                 curr_weight = self.weights[i]
 
-            if curr_weight == max_weight and not checked:
-                max_point_idx = i
-                checked = True
-                continue
-
             colorVal = scalarMap.to_rgba(curr_weight)
             particle_pos = self.map.World2Grid((particle.pos[0], particle.pos[1]))
-            plt.scatter(particle_pos[0], particle_pos[1], marker='o', s=3, color=colorVal, cmap=scalarMap)
+            plt.scatter(particle_pos[0], particle_pos[1],
+                        marker='o', s=3, color=colorVal, cmap=scalarMap)
             plt.arrow(particle_pos[0], particle_pos[1],
                       7*np.cos(particle.yaw), 7*np.sin(particle.yaw),
                       head_width=1.5, head_length=3, length_includes_head=True,
@@ -234,7 +271,7 @@ def main():
     t0 = time()
     num_of_particles = 75
 
-    sim_FPS = 0.5
+    sim_FPS = 0.6
     path_sim_time = Timings(sim_FPS)
 
     sim = Simulation()
@@ -252,7 +289,7 @@ def main():
 
         if status == -1:
             print('Total run time:', floor((time()-t0)/60), 'min',
-                round((time()-t0)%60, 1), 'sec.')
+                  round((time()-t0)%60, 1), 'sec.')
             pf.visualize(image, end=True)
             break
 
@@ -262,6 +299,8 @@ def main():
         # Perform update once a movement is completed
         pf.prediction_step(dataset[0])
         pf.update_step()
+        if np.sum(pf.weights) == 0.0:
+            continue
         if time_to_plot:
             pf.visualize(image) # particles move based on control u
             time_to_plot = False
